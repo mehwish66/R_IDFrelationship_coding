@@ -1,0 +1,97 @@
+---
+title: "Data Analysis"
+author: "Mehwish Zaman"
+date: "2023-02-25"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+we want to fit GEV distribution to the annual maxima series of different durations (d) (1-hr, 2-hr, 3-hr, 6-hr, 12-hr, 24-hr, 48-hr, 72) of the German precipitation data. We have historical hourly station observations of precipitation for Germany, from 1995-09-01 to 2020-12-31, In this document we just perform for only one station name "produkt_rr_stunde_19950901_20110401_00003"
+Here "R1 (renaming later PRECIP)" is the total precipitation(mm). The average intensity can be calculated $I_l(d)=PRECIP/d$, $ (mm h^{-1}$, where d refer as durations. Then we need to form a series of annual maximum intensities. 
+$I(d)= max\{I_1(d), I_2(d), ...,I_m(d)\}$. In practice, the construction of the series of maximum intensities is
+performed for a number of M durations $d_k$, k= 1, 2, ..., M durations of interest. $d\in[d_1 , d_M]=[1,72]$
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+rm(list = ls())
+#install.packages("tidyverse")
+#library(tidyverse)
+library(tidydr)
+library(dplyr)
+library(lubridate,warn.conflicts = FALSE)
+library(zoo)
+library(ggplot2)
+#install.packages("extRemes")
+library(extRemes)
+#library(xts.warn_dplyr_breaks_lag = FALSE)
+produkt_rr_stunde <- read.csv("D:/Research-2023/Research/references/base papers/Data folder/datafiles-20230222T055301Z-001/datafiles/produkt_rr_stunde_19950901_20110401_00003.txt", header=TRUE, sep=";")
+#View(produkt_rr_stunde)
+```
+
+
+## Changing of the date formate and replacing the value -999 by NA
+
+
+```{r }
+produkt_rr_stunde$MESS_DATUM <- ymd_h(produkt_rr_stunde$MESS_DATUM)
+produkt_rr_stunde$R1[produkt_rr_stunde$R1 == -999] <- NA
+sum(is.na(produkt_rr_stunde))
+#produkt_rr_stunde
+produk_r_h <- produkt_rr_stunde[,c("MESS_DATUM", "R1")]
+#produk_r_h
+```
+
+
+
+
+
+```{r}
+library(dplyr)
+produk_r_h %>%
+  mutate(year = format(MESS_DATUM, "%Y")) %>%
+  group_by(year) %>%
+  summarise(PRECIP_maxh1 = max(R1,na.rm=TRUE))
+```
+loop for durations to study, Duration 1,2,3,6,12,24,48,72
+
+```{r}
+
+
+produk_r_hly <- produk_r_h%>%
+  dplyr::mutate(PRECIP_h1 = zoo::rollsum(R1, k = 1, fill = NA),
+                PRECIP_h2 = zoo::rollsum(R1, k = 2, fill = NA)/2,
+                 PRECIP_h3 = zoo::rollsum(R1, k = 3, fill = NA)/3,
+                 PRECIP_h6 = zoo::rollsum(R1, k = 6, fill = NA)/6,
+                 PRECIP_h12 = zoo::rollsum(R1, k = 12, fill = NA)/12,
+                 PRECIP_h24 = zoo::rollsum(R1, k = 24, fill = NA)/24,
+                 PRECIP_h48 = zoo::rollsum(R1, k = 48, fill = NA)/48,
+                 PRECIP_h72 = zoo::rollsum(R1, k = 72, fill = NA)/72)
+#produk_r_hly
+
+```
+
+# Generate series of annual maxima
+To perfom a frequency analysis, we need a series with the maximum rainfall intensity in each of the years of the original data. Since our final goal is to derive an intensity-duration-frequency curve, we must repeat this process for several durations.
+
+```{r}
+produk_r_maxh <- produk_r_hly  %>% 
+  dplyr::mutate(year = format(MESS_DATUM, "%Y")) %>%
+  group_by(year) %>%
+  dplyr::summarize(PRECIP_max1h = max(PRECIP_h1,na.rm=TRUE),PRECIP_max2h = max(PRECIP_h2, na.rm=TRUE),PRECIP_max3h = max(PRECIP_h3, na.rm=TRUE),PRECIP_max6h = max(PRECIP_h6, na.rm=TRUE), PRECIP_max12h = max(PRECIP_h12, na.rm=TRUE),PRECIP_max24h = max(PRECIP_h24, na.rm=TRUE),PRECIP_max48h = max(PRECIP_h48, na.rm=TRUE), PRECIP_max72h = max(PRECIP_h72, na.rm=TRUE)) %>% 
+  as.data.frame()
+produk_r_maxh
+```
+#Fit GEV distribution to each series
+
+```{r}
+#library(IDF)
+#fit <- gev.d.fit(produk_r_maxh2, na.accept = 0)
+#summary(fit)
+
+```
+
+
