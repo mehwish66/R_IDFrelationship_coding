@@ -1,0 +1,92 @@
+---
+title: "Data Analysis"
+author: "Mehwish Zaman"
+date: "2023-02-25"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+we want to fit GEV distribution to the annual maxima series of different durations (d) (1-hr, 2-hr, 3-hr, 6-hr, 12-hr, 24-hr, 48-hr, 72) of the German precipitation data from 1995 to 2011. In this document we just perform for only one station name "Aachen", city in Nordrhein-Westfalen.
+Here "R1 is the total precipitation(mm). The average intensity can be calculated $I_l(d)=R1/d$, $ (mm h^{-1}$, where d refer as durations. Then we need to form a series of annual maximum intensities. 
+$I(d)= max\{I_1(d), I_2(d), ...,I_m(d)\}$. In practice, the construction of the series of maximum intensities is
+performed for a number of M durations $d_k$, k= 1, 2, ..., M durations of interest. $d\in[d_1 , d_M]=[1,72]$
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+rm(list = ls())
+#install.packages("tidyverse")
+#library(tidyverse)
+library(tidydr)
+library(dplyr)
+library(lubridate,warn.conflicts = FALSE)
+library(zoo)
+library(ggplot2)
+#install.packages("extRemes")
+library(extRemes)
+
+aachen.stat <- read.csv("C:/Users/sead/Downloads/R file/aachen stat.txt", header=TRUE, sep=";")
+```
+
+
+## Changing of the date formate and replacing the value -999 by NA
+
+
+```{r }
+aachen.stat$MESS_DATUM <- ymd_h(aachen.stat$MESS_DATUM)
+#aachen.stat
+aachen.stat$R1[aachen.stat$R1 == -999] <- NA
+#aachen.stat
+aachen.stat_pre <- aachen.stat[,c("MESS_DATUM", "R1")]
+#aachen.stat_pre
+sum(is.na(aachen.stat_pre))
+```
+
+
+
+
+
+```{r}
+
+```
+loop for durations to study, Duration 1,2,3,6,12,24,48,72
+
+```{r}
+
+aachen.stat_hly <- aachen.stat_pre%>%
+  dplyr::mutate(PRECIP_h1 = zoo::rollsum(R1, k = 1, fill = NA),
+                PRECIP_h2 = zoo::rollsum(R1, k = 2, fill = NA)/2,
+                 PRECIP_h3 = zoo::rollsum(R1, k = 3, fill = NA)/3,
+                 PRECIP_h6 = zoo::rollsum(R1, k = 6, fill = NA)/6,
+                 PRECIP_h12 = zoo::rollsum(R1, k = 12, fill = NA)/12,
+                 PRECIP_h24 = zoo::rollsum(R1, k = 24, fill = NA)/24,
+                 PRECIP_h48 = zoo::rollsum(R1, k = 48, fill = NA)/48,
+                 PRECIP_h72 = zoo::rollsum(R1, k = 72, fill = NA)/72)
+#aachen.stat_hly
+
+```
+
+# Generate series of annual maxima
+To perfom a frequency analysis, we need a series with the maximum rainfall intensity in each of the years of the original data. Since our final goal is to derive an intensity-duration-frequency curve, we must repeat this process for several durations.
+
+```{r}
+aachen.stat_maxh <- aachen.stat_hly  %>% 
+  dplyr::mutate(year = format(MESS_DATUM, "%Y")) %>%
+  group_by(year) %>%
+  dplyr::summarize(PRECIP_max1h = max(PRECIP_h1,na.rm=TRUE),PRECIP_max2h = max(PRECIP_h2, na.rm=TRUE),PRECIP_max3h = max(PRECIP_h3, na.rm=TRUE),PRECIP_max6h = max(PRECIP_h6, na.rm=TRUE), PRECIP_max12h = max(PRECIP_h12, na.rm=TRUE),PRECIP_max24h = max(PRECIP_h24, na.rm=TRUE),PRECIP_max48h = max(PRECIP_h48, na.rm=TRUE), PRECIP_max72h = max(PRECIP_h72, na.rm=TRUE)) %>% 
+  as.data.frame()
+aachen.stat_maxh
+```
+#Fit GEV distribution to each series
+
+```{r}
+#library(IDF)
+#fit <- gev.d.fit(produk_r_maxh2, na.accept = 0)
+#summary(fit)
+
+```
+
+
